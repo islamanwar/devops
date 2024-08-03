@@ -39,4 +39,4 @@ steps:
     azureSubscription: 'Azure Warriorsoft Test Subscription(4e8dbd33-34bb-436d-a257-121bde29701d)'
     appType: 'webAppLinux'
     WebAppName: 'tst-devops-asp'
-    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+    packageForLinux: '$(build.artifactStagingDirectory)/**/*.zip'
