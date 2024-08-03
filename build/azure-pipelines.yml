@@ -37,10 +37,9 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
-- task: AzureRmWebAppDeployment@4
+- task: AzureWebApp@1
   inputs:
-    ConnectionType: 'AzureRM'
     azureSubscription: 'Azure Warriorsoft Test Subscription(4e8dbd33-34bb-436d-a257-121bde29701d)'
     appType: 'webAppLinux'
-    WebAppName: 'tst-devops-asp'
-    packageForLinux: '$(build.artifactStagingDirectory)/**/*.zip'
+    appName: 'tst-devops-asp'
+    package: '$(build.artifactStagingDirectory)/**/*.zip'
