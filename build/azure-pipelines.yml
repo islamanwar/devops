@@ -1,45 +1,57 @@
-# ASP.NET
-# Build and test ASP.NET projects.
-# Add steps that publish symbols, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
-
-trigger:
-- master
-
-pool:
-  vmImage: 'windows-latest'
-
-variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
-
-steps:
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
+jobs:
+- job: buildandtest
+  pool:
+    vmImage: ubuntu-latest
+ 
+  steps:
+  - task: NuGetToolInstaller@1
+  
+  - task: NuGetCommand@2
   inputs:
     restoreSolution: '$(solution)'
-
-- task: VSBuild@1
+  
+  - task: VSBuild@1
   inputs:
     solution: '$(solution)'
     msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
+  # publish an artifact called drop
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)' 
+      artifactName: drop
+  
+  # deploy to Azure Web App staging
+  - task: AzureWebApp@1
+    inputs:
+      azureSubscription: 'Azure Warriorsoft Test Subscription(4e8dbd33-34bb-436d-a257-121bde29701d)'
+      appType: <app type>
+      appName: '<staging-app-name>'
+      deployToSlotOrASE: true
+      resourceGroupName: <group-name>
+      slotName: 'staging'
+      package: '$(Build.ArtifactStagingDirectory)/**/*.zip'
 
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
-- task: AzureWebApp@1
-  inputs:
-    azureSubscription: 'Azure Warriorsoft Test Subscription(4e8dbd33-34bb-436d-a257-121bde29701d)'
-    appType: 'webAppLinux'
-    appName: 'tst-devops-asp'
-    package: '$(build.artifactStagingDirectory)/**/*.zip'
+- job: deploy
+  dependsOn: buildandtest
+  condition: succeeded()
+
+  pool: 
+    vmImage: ubuntu-latest  
+  
+  steps:
+    # download the artifact drop from the previous job
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: 'current'
+      artifact: 'drop'
+      path: '$(Pipeline.Workspace)'
+
+  - task: AzureWebApp@1
+    inputs:
+      azureSubscription: '<service-connection-name>'
+      appType: <app type>
+      appName: '<production-app-name>'
+      resourceGroupName: <group-name>
+      package: '$(Pipeline.Workspace)/**/*.zip'
